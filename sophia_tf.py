@@ -61,8 +61,6 @@ class Sophia(optimizer.Optimizer):
 
         # update first moment moving average
         m.assign(beta_1 * m + (1 - beta_1) * gradient)
-        # temp (fake, pure copy from update_hessian()) hessian update for test purposes (until actual implem)
-        h.assign(beta_2 * h + (1 - beta_2) * (gradient * gradient))
 
         # element-wise division of momentum by Hessian value (+epsilon to prevent /0)
         # clipped to a range of +/-1 in order to prevent too-large Hessians
