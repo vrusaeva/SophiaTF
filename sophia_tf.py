@@ -61,7 +61,7 @@ class Sophia(optimizer.Optimizer):
 
         # update first moment moving average
         m.assign(beta_1 * m + (1 - beta_1) * gradient)
-        # temp (fake) hessian update for test purposes (until actual implem)
+        # temp (fake, pure copy from update_hessian()) hessian update for test purposes (until actual implem)
         h.assign(beta_2 * h + (1 - beta_2) * (gradient * gradient))
 
         # element-wise division of momentum by Hessian value (+epsilon to prevent /0)
@@ -84,9 +84,8 @@ class Sophia(optimizer.Optimizer):
         config = super(Sophia, self).get_config()
         config.update({"learning_rate": self.learning_rate,
                        "betas": self.betas,
-                       "epsilon": self.eps,
                        "weight_decay": self.weight_decay,
-                       "k": self.k,
                        "rho": self.rho,
-                       "estimator": self.estimator, })
+                       "batch_size": self.batch_size,
+                       "maximize": self.maximize})
         return config
