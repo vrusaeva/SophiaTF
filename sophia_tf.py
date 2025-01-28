@@ -1,5 +1,7 @@
 from keras.src.optimizers import optimizer
 from keras.src import ops
+from keras.src.losses import sparse_categorical_crossentropy
+import tensorflow as tf
 
 
 # Keras 3 implementation of Sophia optimizer (WIP.)
@@ -77,6 +79,20 @@ class Sophia(optimizer.Optimizer):
             h = self._hessian[self._get_variable_index(variable)]
 
             h.assign(beta_2 * h + (1 - beta_2) * (grad * grad))
+
+    # Ensure your GradientTape is persistent and logits are of the correct shape (batch_size, num_classes) to use
+    def update_hessian_auto(self, tape, logits, variables):
+        with tape:
+            # draw y_hat from categorical distribution
+            y_hat = tf.random.categorical(logits=logits, num_samples=1)
+            # compute loss over the batch
+            # 1/B summation(ℓ(f(θ, xb), yˆb))
+            opt_loss = tf.reduce_sum(sparse_categorical_crossentropy(tf.reshape(y_hat, [-1]),
+                                                                     tf.reshape(logits, [-1, logits.shape[-1]]),
+                                                                     from_logits=True, ignore_class=-1) / self.batch_size)
+        # compute gradients of sampled loss over the trainable weights
+        opt_grads = tape.gradient(opt_loss, variables)
+        self.update_hessian(opt_grads)
 
     def get_config(self):
         config = super(Sophia, self).get_config()
