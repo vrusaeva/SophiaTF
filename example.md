@@ -1,5 +1,7 @@
 ## General Usage
 
+To install, simply download sophia_tf from this repo.
+
 Below is an example code snippet for training a general model with NLL loss with the Tensorflow Sophia implementation.
 Note that update_hessian_auto() is not yet tested - use the logic below it and adapt for your specific task if needed.
 
@@ -53,3 +55,10 @@ for epoch in range(epochs):
             opt_grads = tape.gradient(opt_loss, model.trainable_weights)
             optimizer.update_hessian(opt_grads, model.trainable_weights)
 ```
+
+## Planned Updates:
+- Ensure internally-implemented Hessian updates work as expected.
+- Add the Hutchinson estimator outlined in the paper in order to give users a choice of estimator.
+- Set up installation of this optimizer via pip.
+
+If you have any, please submit any feedback or additional features you would like to see.
