@@ -65,7 +65,7 @@ class Sophia(optimizer.Optimizer):
         h.assign(beta_2 * h + (1 - beta_2) * (gradient * gradient))
 
         # element-wise division of momentum by Hessian value (+epsilon to prevent /0)
-        # Hessian is clipped to a range of +/-rho in order to prevent too-large Hessians
+        # clipped to a range of +/-1 in order to prevent too-large Hessians
         # ratio = (exp_avg.abs() / (rho * bs * hess + 1e-15)).clamp(None, 1)
         # param.addcmul_(exp_avg.sign(), ratio, value=step_size_neg)
         update = ops.clip((ops.abs(m) / (rho * bs * h + 1e-15)), -1, 1)
