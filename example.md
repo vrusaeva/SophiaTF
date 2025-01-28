@@ -1,6 +1,7 @@
 ## General Usage
 
-Below is an example code snippet for training a general model with NLL loss with the Tensorflow Sophia Implementation. 
+Below is an example code snippet for training a general model with NLL loss with the Tensorflow Sophia implementation.
+TODO: make it easier for the user by implementing the Hessian update inside the optimizer itself.
 
 ```python
 import tensorflow as tf
@@ -35,6 +36,7 @@ for epoch in range(epochs):
         optimizer.apply_gradients(zip(gradients, model.trainable_weights))
         step += 1
     
+        # Hessian update logic
         if step % k == k - 1:
             with tape:
                 # treat sequence entries as individual predictions (was testing on seq2seq task, omit if unneeded)
@@ -46,7 +48,7 @@ for epoch in range(epochs):
                 opt_loss = tf.reduce_sum(sparse_categorical_crossentropy(tf.reshape(y_hat, [-1]),
                                                                          tf.reshape(logits_reshaped, [-1, logits_reshaped.shape[-1]]), 
                                                                          from_logits=True, ignore_class=-1) / (batch_size * block_length))
-        # compute gradients of sampled loss over the trainable weights
-        opt_grads = tape.gradient(opt_loss, model.trainable_weights)
-        optimizer.update_hessian(opt_grads, model.trainable_weights)
+            # compute gradients of sampled loss over the trainable weights
+            opt_grads = tape.gradient(opt_loss, model.trainable_weights)
+            optimizer.update_hessian(opt_grads, model.trainable_weights)
 ```
