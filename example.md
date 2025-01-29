@@ -54,6 +54,9 @@ for epoch in range(epochs):
             # compute gradients of sampled loss over the trainable weights
             opt_grads = tape.gradient(opt_loss, model.trainable_weights)
             optimizer.update_hessian(opt_grads, model.trainable_weights)
+    # Tracking of clipped steps per epoch for parameter tuning (optional, see README.md)
+    # Should be equal to 1 - train/win_rate
+    print(f"Clip rate {optimizer.clip_count/optimizer.step}")
 ```
 
 Replace Hessian update logic with the following if using SophiaH.

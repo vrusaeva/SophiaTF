@@ -8,7 +8,7 @@ import tensorflow as tf
 # Based on https://github.com/Liuhong99/Sophia.
 class Sophia(optimizer.Optimizer):
     def __init__(self, lr=1e-4, betas=(0.965, 0.99), rho=0.04,
-                 weight_decay=1e-1, *, maximize: bool = False,
+                 weight_decay=1e-1, *, maximize: bool = False, track_clipping: bool = False,
                  batch_size=64, name="Sophia", **kwargs):
         super().__init__(learning_rate=lr, name=name, **kwargs)
         self.betas = betas
@@ -16,6 +16,7 @@ class Sophia(optimizer.Optimizer):
         self.weight_decay = weight_decay
         self.batch_size = batch_size
         self.maximize = maximize  # if wishing to maximize loss
+        self.track_clipping = track_clipping  # track whether update was clipped or not (for tuning of hyperparameters)
         # CUDA is not currently supported/used
         # self.capturable = capturable
 
@@ -34,6 +35,7 @@ class Sophia(optimizer.Optimizer):
                 self.add_variable(shape=var.shape, initializer="zeros", name=f"hessian_{i}")
             )
         self.step = self.add_variable(shape=(), initializer="zeros", name="step")
+        self.clip_count = self.add_variable(shape=(), initializer="zeros", name="step")
 
     def update_step(self, gradient, variable, learning_rate):
         # set variables for easier in-function use
@@ -45,11 +47,13 @@ class Sophia(optimizer.Optimizer):
         weight_decay = self.weight_decay
         maximize = self.maximize
         bs = self.batch_size
+        track_clipping = self.track_clipping
 
         # get optimizer state variables
         m = self._fmoment[self._get_variable_index(variable)]
         h = self._hessian[self._get_variable_index(variable)]
         step = self.step
+        clip_count = self.clip_count
 
         # increment step counter
         step.assign(step + 1)
@@ -68,7 +72,11 @@ class Sophia(optimizer.Optimizer):
         # clipped to a range of +/-1 in order to prevent too-large updates
         # ratio = (exp_avg.abs() / (rho * bs * hess + 1e-15)).clamp(None, 1)
         # param.addcmul_(exp_avg.sign(), ratio, value=step_size_neg)
+        raw_update = ops.abs(m) / (tf.math.maximum(rho * bs * h, 1e-15))
         update = ops.clip((ops.abs(m) / (tf.math.maximum(rho * bs * h, 1e-15))), -1, 1)
+        if track_clipping:
+            if (abs(raw_update.numpy()) > abs(update.numpy())).any():
+                clip_count.assign(clip_count + 1)
         self.assign_add(variable, ops.sign(m) * update * (-lr))
 
     # Hessian estimator must be calculated within training regimen
