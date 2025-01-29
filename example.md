@@ -2,8 +2,8 @@
 
 To install, simply download sophia_tf.py from this repo.
 
-Below is an example code snippet for training a general model with NLL loss with the Tensorflow Sophia implementation.
-Note that update_hessian_auto() is not yet tested - use the logic below it and adapt for your specific task if needed.
+Below is an example code snippet for training a general model with NLL loss with the Tensorflow SophiaG implementation.
+Note that update_hessian_auto_g() is not yet tested - use the logic below it and adapt for your specific task if needed.
 
 ```python
 import tensorflow as tf
@@ -40,7 +40,7 @@ for epoch in range(epochs):
     
         # Hessian update logic; ensure logits are of shape (batch_size * block_length, num_classes)
         if step % k == k - 1:
-            optimizer.update_hessian_auto(tape, logits, model.trainable_weights)
+            optimizer.update_hessian_auto_g(tape, logits, model.trainable_weights) 
                                           
             # If the above does not work, use the direct implementation instead: 
             with tape:
@@ -56,10 +56,25 @@ for epoch in range(epochs):
             optimizer.update_hessian(opt_grads, model.trainable_weights)
 ```
 
+Replace Hessian update logic with the following if using SophiaH.
+```python
+# Hessian update logic
+        if step % k == k - 1:
+            optimizer.update_hessian_auto_h(tape, gradients, model.trainable_weights) 
+                                          
+            # If the above does not work, use the direct implementation instead: 
+            with tape:
+                # take a vector u of same shape as gradients from spherical normal distribution
+                u = tf.random.normal(gradients.shape, dtype=gradients.dtype)
+                # element-wise product of Hessian with vector u = (∇^2)ℓ(θ)u
+                dp = tf.reduce_sum(gradients * u)
+            # ∇(⟨∇L(θ), u⟩)
+            hessian_vector_product = tape.gradient(dp, model.trainable_weights)
+            optimizer.update_hessian(u * hessian_vector_product, model.trainable_weights)
+```
 ## Planned Updates:
-- Ensure internally-implemented Hessian updates work as expected.
-- Generalize internal Hessian update so loss functions other than categorical crossentropy can be used.
-- Add the Hutchinson estimator outlined in the paper in order to give users a choice of estimator.
+- Ensure internally-implemented Hessian updates (Hutchinson and GNB) work as expected.
+- Generalize internal Hessian update (GNB) so loss functions other than categorical crossentropy can be used.
 - Set up installation of this optimizer via pip.
 
 If you have any, please submit any feedback or additional features you would like to see.

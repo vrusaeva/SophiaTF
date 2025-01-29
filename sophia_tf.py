@@ -65,10 +65,10 @@ class Sophia(optimizer.Optimizer):
         m.assign(beta_1 * m + (1 - beta_1) * gradient)
 
         # element-wise division of momentum by Hessian value (+epsilon to prevent /0)
-        # clipped to a range of +/-1 in order to prevent too-large Hessians
+        # clipped to a range of +/-1 in order to prevent too-large updates
         # ratio = (exp_avg.abs() / (rho * bs * hess + 1e-15)).clamp(None, 1)
         # param.addcmul_(exp_avg.sign(), ratio, value=step_size_neg)
-        update = ops.clip((ops.abs(m) / (rho * bs * h + 1e-15)), -1, 1)
+        update = ops.clip((ops.abs(m) / (tf.math.maximum(rho * bs * h, 1e-15))), -1, 1)
         self.assign_add(variable, ops.sign(m) * update * (-lr))
 
     # Hessian estimator must be calculated within training regimen
@@ -80,8 +80,21 @@ class Sophia(optimizer.Optimizer):
 
             h.assign(beta_2 * h + (1 - beta_2) * (grad * grad))
 
+    # Hutchinson estimator - independent of loss function
+    # Ensure your GradientTape is persistent to use
+    def update_hessian_auto_h(self, tape, gradients, variables):
+        with tape:
+            # take a vector u of same shape as gradients from spherical normal distribution
+            u = tf.random.normal(gradients.shape, dtype=gradients.dtype)
+            # element-wise product of Hessian with vector u = (∇^2)ℓ(θ)u
+            dp = tf.reduce_sum(gradients * u)
+        # ∇(⟨∇L(θ), u⟩)
+        hessian_vector_product = tape.gradient(dp, variables)
+        self.update_hessian(u * hessian_vector_product, variables)
+
+    # Gauss-Newton-Bartlett estimator
     # Ensure your GradientTape is persistent and logits are of the correct shape (batch_size, num_classes) to use
-    def update_hessian_auto(self, tape, logits, variables):
+    def update_hessian_auto_g(self, tape, logits, variables):
         with tape:
             # draw y_hat from categorical distribution
             y_hat = tf.random.categorical(logits=logits, num_samples=1)
