@@ -58,7 +58,7 @@ for epoch in range(epochs):
 
 Replace Hessian update logic with the following if using SophiaH.
 ```python
-# Hessian update logic
+    # Hessian update logic
         if step % k == k - 1:
             optimizer.update_hessian_auto_h(tape, gradients, model.trainable_weights) 
                                           
