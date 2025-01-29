@@ -16,9 +16,10 @@ model = keras.Model()
 trainX, trainY = ..., ...
 batch_size = 64
 block_length = ...
+track_clipping = True
 
 # init optimizer
-optimizer = Sophia(lr=2e-4, betas=(0.965, 0.99), rho=0.01, weight_decay=0.2, maximize=False, batch_size=batch_size * block_length)
+optimizer = Sophia(lr=2e-4, betas=(0.965, 0.99), rho=0.01, weight_decay=0.2, maximize=False, track_clipping=track_clipping, batch_size=batch_size * block_length)
 
 k = 10
 step = -1
@@ -54,9 +55,10 @@ for epoch in range(epochs):
             # compute gradients of sampled loss over the trainable weights
             opt_grads = tape.gradient(opt_loss, model.trainable_weights)
             optimizer.update_hessian(opt_grads, model.trainable_weights)
-    # Tracking of clipped steps per epoch for parameter tuning (optional, see README.md)
-    # Should be equal to 1 - train/win_rate
-    print(f"Clip rate {optimizer.clip_count/optimizer.step}")
+    # Tracking of clipped steps for parameter tuning (optional, see README.md)
+    # Should be ~equal to 1 - train/win_rate
+    if track_clipping:
+        print(f"Clip rate {optimizer.clip_count/optimizer.step}")
 ```
 
 Replace Hessian update logic with the following if using SophiaH.
