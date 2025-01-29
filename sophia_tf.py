@@ -72,9 +72,9 @@ class Sophia(optimizer.Optimizer):
         self.assign_add(variable, ops.sign(m) * update * (-lr))
 
     # Hessian estimator must be calculated within training regimen
-    def update_hessian(self, gradients):
+    def update_hessian(self, gradients, variables):
         beta_2 = self.betas[1]
-        for variable in self.variables:
+        for variable in variables:
             grad = gradients[self._get_variable_index(variable)]
             h = self._hessian[self._get_variable_index(variable)]
 
@@ -92,7 +92,7 @@ class Sophia(optimizer.Optimizer):
                                                                      from_logits=True, ignore_class=-1) / self.batch_size)
         # compute gradients of sampled loss over the trainable weights
         opt_grads = tape.gradient(opt_loss, variables)
-        self.update_hessian(opt_grads)
+        self.update_hessian(opt_grads, variables)
 
     def get_config(self):
         config = super(Sophia, self).get_config()
