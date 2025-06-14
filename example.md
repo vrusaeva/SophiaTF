@@ -1,3 +1,5 @@
+NOTE: I am not certain that this works as intended on large models. Any testing and feedback is appreciated!
+
 ## General Usage
 
 To install, simply download sophia_tf.py from this repo.
